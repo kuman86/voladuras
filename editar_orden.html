@@ -1,0 +1,1249 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<!-- CSS de Select2 -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<!-- JS de Select2 -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<h2><strong><i class="fas fa-file-alt"></i> Número de Orden:</strong> {{ orden.orden_numero }}</h2>
+
+<form method="POST" action="{{ url_for('main.editar_orden', orden_id=orden.id) }}" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+        
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+    
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            {% if current_user.rol == 'admin' %}
+                <!-- Administradores: Checkbox como indicador -->
+                <input 
+                    type="checkbox" 
+                    id="reg_sap" 
+                    name="reg_sap" 
+                    class="form-check-input me-2" 
+                    {% if orden.reg_sap %}checked{% endif %}>
+                <label for="reg_sap" class="form-check-label me-2">Reg. Sap</label>
+            {% endif %}
+    
+            <!-- Campo número SAP siempre visible y editable -->
+            <label for="numero_sap" class="form-check-label me-2">Número SAP:</label>
+            <input 
+                type="text" 
+                id="numero_sap" 
+                name="numero_sap" 
+                class="form-control ms-2" 
+                placeholder="Número SAP" 
+                value="{{ orden.numero_sap or '' }}" 
+                oninput="validarSoloNumeros(this)">
+        </div>
+    </div>
+    
+    <script>
+        // Valida que solo se permitan números en el campo de número SAP
+        function validarSoloNumeros(input) {
+            input.value = input.value.replace(/[^0-9]/g, ''); // Reemplazar cualquier carácter que no sea numérico
+        }
+    
+        document.addEventListener('DOMContentLoaded', () => {
+            const regSapCheckbox = document.getElementById('reg_sap');
+            const numeroSapInput = document.getElementById('numero_sap');
+            const isAdmin = "{{ 'true' if current_user.rol == 'admin' else 'false' }}" === "true";
+    
+            if (isAdmin) {
+                // El campo es siempre editable para administradores
+                numeroSapInput.removeAttribute('readonly');
+    
+                if (regSapCheckbox) {
+                    regSapCheckbox.addEventListener('change', () => {
+                        console.log('Checkbox Reg. Sap cambiado:', regSapCheckbox.checked);
+                    });
+                }
+            }
+        });
+    </script>
+        
+        <label for="usuario_id">Asignar Orden a:</label>
+        <select class="form-control" id="usuario_id" name="usuario_asignado" required>
+            <option value="">Selecciona un usuario</option>
+            {% for usuario_id, nombre in form.usuario_asignado.choices %}
+                <option value="{{ usuario_id }}" {% if usuario_id|string == form.usuario_asignado.data|string %}selected{% endif %}>
+                    {{ nombre }}
+                </option>
+            {% endfor %}
+        </select>
+            
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="tipo_servicio">Tipo de Servicio:</label>
+                    <select 
+                        class="form-control" 
+                        id="tipo_servicio" 
+                        name="tipo_servicio" 
+                        required 
+                        title="Seleccione el tipo de servicio" 
+                        {% if current_user.rol != 'admin' %}disabled{% endif %}>
+                        <option value="">Selecciona una opción</option>
+                        <option value="Facturado" {% if form.tipo_servicio.data == 'Facturado' %}selected{% endif %}>Facturado</option>
+                        <option value="Garantia" {% if form.tipo_servicio.data == 'Garantia' %}selected{% endif %}>Garantía</option>
+                        <option value="Garantia_Comercial" {% if form.tipo_servicio.data == 'Garantia_Comercial' %}selected{% endif %}>Garantía Comercial</option>
+                        <option value="Garantia_Fabrica" {% if form.tipo_servicio.data == 'Garantia_Fabrica' %}selected{% endif %}>Garantía de Fábrica</option>
+                        <option value="Alisto" {% if form.tipo_servicio.data == 'Alisto' %}selected{% endif %}>Alisto</option>
+                        <option value="Trabajo_Interno" {% if form.tipo_servicio.data == 'Trabajo_Interno' %}selected{% endif %}>Trabajo Interno</option>
+                        <option value="Regalia_vendedor" {% if form.tipo_servicio.data == 'Regalia_vendedor' %}selected{% endif %}>Regalia por vendedor</option>
+                    </select>
+                    {% if current_user.rol != 'admin' %}
+                        <input type="hidden" name="tipo_servicio" value="{{ form.tipo_servicio.data }}">
+                    {% endif %}
+                </div>
+            </div>
+        </div>            
+                                
+    <!-- Información del cliente y equipo -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                {{ form.cliente.label }}
+                {{ form.cliente(class="form-control", placeholder="Nombre del Cliente", title="Por favor ingrese el nombre del cliente") }}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                {{ form.equipo.label }}
+                {{ form.equipo(class="form-control", placeholder="Equipo del Cliente", title="Por favor ingrese el equipo del cliente") }}
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                {{ form.ubicacion.label }}
+                {{ form.ubicacion(class="form-control", placeholder="Ubicación del Cliente", title="Por favor ingrese la ubicación del cliente") }}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                {{ form.kilometraje.label }}
+                {{ form.kilometraje(class="form-control", placeholder="Kilometraje del Vehículo", title="Por favor ingrese el kilometraje del vehículo") }}
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                {{ form.horimetro.label }}
+                {{ form.horimetro(class="form-control", placeholder="Medición del horímetro", title="Por favor ingrese la medición del horímetro") }}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="mb-3">
+            {{ form.correo_cliente.label }}
+            {{ form.correo_cliente(class="form-control", placeholder="Correo del Cliente", title="Por favor ingrese el correo del cliente") }}
+        </div>
+    </div>
+
+
+    <!-- Fecha de ingreso -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                {{ form.fecha_ingreso.label }}
+                {{ form.fecha_ingreso(class="form-control", type="date", title="Ingrese la fecha de ingreso") }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Información del vehículo -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                {{ form.serie.label }}
+                {{ form.serie(class="form-control", placeholder="Serie del Vehículo", title="Por favor ingrese la serie del vehículo") }}
+                {% if form.serie.errors %}
+                    <div class="text-danger">
+                        <p>Debes colocar la serie para poder guardar.</p>
+                    </div>
+                {% endif %}
+            </div>                    
+        </div>
+        <div class="mb-3">
+            {{ form.placa.label }}
+            {{ form.placa(class="form-control", placeholder="Placa del Vehículo", title="Por favor ingrese la placa del vehículo") }}
+        </div>
+    </div>
+        
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                {{ form.marca.label }}
+                {{ form.marca(class="form-control", placeholder="Marca del Vehículo", title="Por favor ingrese la marca del vehículo") }}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                {{ form.modelo.label }}
+                {{ form.modelo(class="form-control", placeholder="Modelo del Vehículo", title="Por favor ingrese el modelo del vehículo") }}
+            </div>
+        </div>
+    </div>    
+
+<!-- Sección de Repuestos Desplegable -->
+<h3>Repuestos Utilizados</h3>
+<div class="accordion" id="accordionRepuestos">
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingRepuestos">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRepuestos" aria-expanded="false" aria-controls="collapseRepuestos">
+                Ver Repuestos
+            </button>
+        </h2>
+        <div id="collapseRepuestos" class="accordion-collapse collapse" aria-labelledby="headingRepuestos" data-bs-parent="#accordionRepuestos">
+            <div class="accordion-body">
+                <div id="repuestos-container">
+                    {% if orden.repuestos %}
+                        {% for repuesto in orden.repuestos %}
+                        <div class="row repuesto-row mb-3" data-item-id="{{ repuesto.id }}">
+                            <input type="hidden" name="id_repuesto[]" value="{{ repuesto.id }}">
+                            <div class="col-md-3">
+                                <label for="codigo_repuesto">Código</label>
+                                <input type="text" name="codigo_repuesto[]" value="{{ repuesto.codigo }}" class="form-control" placeholder="Código del repuesto">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="cantidad_repuesto">Cantidad</label>
+                                <input type="text" name="cantidad_repuesto[]" value="{{ repuesto.cantidad }}" class="form-control cantidad-repuesto" placeholder="Cantidad">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="unidad_repuesto_${index}">Tipo</label>
+                                <select name="unidad_repuesto[]" id="unidad_repuesto_${index}" class="form-control" title="Seleccione la unidad para el repuesto">
+                                    <option value="No_Aplica" {% if repuesto.unidad == 'No_Aplica' %}selected{% endif %}>No Aplica</option>
+                                    <option value="Litros" {% if repuesto.unidad == 'Litros' %}selected{% endif %}>Litros</option>
+                                    <option value="Galones" {% if repuesto.unidad == 'Galones' %}selected{% endif %}>Galones</option>
+                                    <option value="Metros" {% if repuesto.unidad == 'Metros' %}selected{% endif %}>Metros</option>
+                                    <option value="Unidades" {% if repuesto.unidad == 'Unidades' %}selected{% endif %}>Unidades</option>
+                                    <option value="Pichinga 20L" {% if repuesto.unidad == 'Pichinga 20L' %}selected{% endif %}>Pichinga 20ML</option>
+                                </select>
+                            </div>
+                                                        <div class="col-md-3">
+                                <label for="descripcion_repuesto">Descripción</label>
+                                <input type="text" name="descripcion_repuesto[]" value="{{ repuesto.descripcion }}" class="form-control" placeholder="Descripción">
+                            </div>
+                            <div class="col-md-1 d-flex align-items-end">
+                                <button type="button" class="btn btn-danger btn-sm remove-field" title="Eliminar repuesto">
+                                    <i class="fas fa-trash-alt"></i> Eliminar
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>No hay repuestos asignados a esta orden.</p>
+                    {% endif %}
+                </div>
+                <button type="button" id="agregar-repuesto" class="btn btn-secondary mt-2">Agregar Repuesto</button>
+                <input type="hidden" name="repuestos_eliminados" id="repuestos_eliminados">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const repuestosContainer = document.getElementById('repuestos-container');
+    const agregarRepuestoBtn = document.getElementById('agregar-repuesto');
+    let index = document.querySelectorAll('.repuesto-row').length || 0;
+
+    agregarRepuestoBtn.addEventListener('click', function () {
+        const newRepuesto = `
+            <div class="row repuesto-row mb-3" data-item-id="">
+                <input type="hidden" name="id_repuesto[]" value="">
+                <div class="col-md-3">
+                    <label for="codigo_repuesto_${index}">Código</label>
+                    <input type="text" name="codigo_repuesto[]" id="codigo_repuesto_${index}" class="form-control" placeholder="Código del repuesto">
+                </div>
+                <div class="col-md-3">
+                    <label for="cantidad_repuesto_${index}">Cantidad</label>
+                    <input type="text" name="cantidad_repuesto[]" id="cantidad_repuesto_${index}" class="form-control cantidad-repuesto" placeholder="Cantidad">
+                </div>
+                <div class="col-md-3">
+                    <label for="unidad_repuesto_${index}">Tipo</label>
+                    <select name="unidad_repuesto[]" id="unidad_repuesto_${index}" class="form-control">
+                        <option value="No Aplica">No Aplica</option>
+                        <option value="Litros">Litros</option>
+                        <option value="Galones">Galones</option>
+                        <option value="Metros">Metros</option>
+                        <option value="Unidades">Unidades</option>
+                        <option value="Pichinga 20L">Pichinga 20L</option>                        
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="descripcion_repuesto_${index}">Descripción</label>
+                    <input type="text" name="descripcion_repuesto[]" id="descripcion_repuesto_${index}" class="form-control" placeholder="Descripción">
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="button" class="btn btn-danger btn-sm remove-field" title="Eliminar repuesto">
+                        <i class="fas fa-trash-alt"></i> Eliminar
+                    </button>
+                </div>
+            </div>`;
+        repuestosContainer.insertAdjacentHTML('beforeend', newRepuesto);
+        index++;
+    });
+
+});
+</script>
+
+<!-- Sección de Mano de Obra Desplegable -->
+
+    <h3>Mano de Obra</h3>
+    <div class="accordion" id="accordionManoObra">
+        {% for mano_obra in mano_obra_data %}
+        <div class="accordion-item mano-obra-entry mb-3" data-item-id="{{ mano_obra.id }}">
+            <h2 class="accordion-header" id="headingManoObra{{ loop.index }}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseManoObra{{ loop.index }}" aria-expanded="false" aria-controls="collapseManoObra{{ loop.index }}">
+                    Entrada de Mano de Obra #{{ loop.index }}
+                </button>            
+            </h2>
+            <div id="collapseManoObra{{ loop.index }}" class="accordion-collapse collapse" aria-labelledby="headingManoObra{{ loop.index }}">
+                <div class="accordion-body">
+                    <input type="hidden" name="mano_obra_id[]" value="{{ mano_obra.id }}">
+    
+                        
+                    <!-- Campos de fecha y usuario -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="fecha_mano_obra_{{ loop.index }}">Fecha</label>
+                            <input type="date" name="fecha_mano_obra[]" id="fecha_mano_obra_{{ loop.index }}" value="{{ mano_obra.fecha or '' }}" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="hora_inicio_{{ loop.index }}">Hora de Inicio</label>
+                            <input type="time" name="hora_inicio_mano_obra[]" id="hora_inicio_{{ loop.index }}" value="{{ mano_obra.hora_inicio or '' }}" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="hora_final_{{ loop.index }}">Hora Final</label>
+                            <input type="time" name="hora_final_mano_obra[]" id="hora_final_{{ loop.index }}" value="{{ mano_obra.hora_final or '' }}" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="usuario_id_{{ loop.index }}">Usuario</label>
+                            <select name="usuario_id[]" id="usuario_id_{{ loop.index }}" class="form-control">
+                                <option value="">-- Seleccione un Usuario --</option>
+                                {% for usuario_id, nombre in form.usuario_asignado.choices %}
+                                <option value="{{ usuario_id }}" {% if usuario_id|string == mano_obra.usuario_id|string %}selected{% endif %}>{{ nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <h6>Seleccionar Tarea</h6>
+                        <div class="col-md-12">
+                            <label for="tarea_id_{{ loop.index }}">Tarea Asignada</label>
+                            <select name="tarea_id[]" id="tarea_id_{{ loop.index }}" class="form-control">
+                                {% for tarea in tareas_asignadas %}
+                                <option value="{{ tarea.id }}" {% if mano_obra.tarea_id == tarea.id %}selected{% endif %}>
+                                    {{ tarea.nombre_tarea }} - {{ tarea.tiempo_estandar }} horas
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>                                                                                    
+                    <!-- Campos de descansos -->
+                    <div class="row mb-3">
+                        <h6>Descansos</h6>
+                        <div class="col-md-2">
+                            <label for="desayuno_inicio_{{ loop.index }}">Desayuno Inicio</label>
+                            <input type="time" name="desayuno_inicio[]" id="desayuno_inicio_{{ loop.index }}" value="{{ mano_obra.desayuno_inicio or '' }}" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="desayuno_fin_{{ loop.index }}">Desayuno Fin</label>
+                            <input type="time" name="desayuno_fin[]" id="desayuno_fin_{{ loop.index }}" value="{{ mano_obra.desayuno_fin or '' }}" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="almuerzo_inicio_{{ loop.index }}">Almuerzo Inicio</label>
+                            <input type="time" name="almuerzo_inicio[]" id="almuerzo_inicio_{{ loop.index }}" value="{{ mano_obra.almuerzo_inicio or '' }}" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="almuerzo_fin_{{ loop.index }}">Almuerzo Fin</label>
+                            <input type="time" name="almuerzo_fin[]" id="almuerzo_fin_{{ loop.index }}" value="{{ mano_obra.almuerzo_fin or '' }}" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="cafe_inicio_{{ loop.index }}">Café Inicio</label>
+                            <input type="time" name="cafe_inicio[]" id="cafe_inicio_{{ loop.index }}" value="{{ mano_obra.cafe_inicio or '' }}" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="cafe_fin_{{ loop.index }}">Café Fin</label>
+                            <input type="time" name="cafe_fin[]" id="cafe_fin_{{ loop.index }}" value="{{ mano_obra.cafe_fin or '' }}" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="cena_inicio_{{ loop.index }}">Cena Inicio</label>
+                            <input type="time" name="cena_inicio[]" id="cena_inicio_{{ loop.index }}" value="{{ mano_obra.cena_inicio or '' }}" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="cena_fin_{{ loop.index }}">Cena Fin</label>
+                            <input type="time" name="cena_fin[]" id="cena_fin_{{ loop.index }}" value="{{ mano_obra.cena_fin or '' }}" class="form-control">
+                        </div>
+                    </div>
+                    <!-- Campo de Comentario -->
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="comentario_{{ loop.index }}">Comentario</label>
+                            <textarea name="comentario[]" id="comentario_{{ loop.index }}" class="form-control" placeholder="Ingrese un comentario si no se asignó una tarea">{{ mano_obra.comentario or '' }}</textarea>
+                        </div>
+                    </div>
+
+    
+                    <!-- Botón para eliminar -->
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-danger eliminar-mano-obra" data-item-id="{{ mano_obra.id }}">
+                            <i class="fas fa-trash-alt"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <input type="hidden" id="mano_obra_eliminados" name="mano_obra_eliminados" value="">
+    <button type="button" id="agregar-mano-obra" class="btn btn-primary mt-3">Agregar Mano de Obra</button>
+  
+    
+
+
+    
+    <script>
+document.addEventListener('DOMContentLoaded', function () {
+    const manoObraContainer = document.getElementById('accordionManoObra');
+    const agregarManoObraBtn = document.getElementById('agregar-mano-obra');
+    const manoObraEliminadosInput = document.getElementById('mano_obra_eliminados');
+    let index = parseInt("{{ mano_obra_data|length or 0 }}", 10);
+    let usuariosOptions = '';
+    let tareasOptions = '';
+
+    async function cargarDatos() {
+        usuariosOptions = await cargarOpcionesUsuarios();
+        tareasOptions = await cargarOpcionesTareas();
+    }
+
+    cargarDatos();
+
+    // Función para cargar las opciones de tareas desde el servidor
+    async function cargarOpcionesTareas() {
+        try {
+            const response = await fetch('/api/catalogo_tiempos');
+            if (!response.ok) throw new Error(`Error al cargar tareas (status: ${response.status})`);
+            const tareas = await response.json();
+            return tareas.map(t => `<option value="${t.id}">${t.nombre_tarea}</option>`).join('');
+        } catch (error) {
+            console.error('Error al cargar tareas:', error);
+            return '<option value="">Error al cargar tareas</option>';
+        }
+    }
+
+    // Función para cargar las opciones de usuarios desde el servidor
+    async function cargarOpcionesUsuarios() {
+        try {
+            const response = await fetch('/api/usuarios');
+            if (!response.ok) throw new Error(`Error al cargar usuarios (status: ${response.status})`);
+            const usuarios = await response.json();
+            return usuarios.map(u => `<option value="${u.id}">${u.usuario}</option>`).join('');
+        } catch (error) {
+            console.error('Error al cargar usuarios:', error);
+            return '<option value="">Error al cargar usuarios</option>';
+        }
+    }
+
+    let ordenTareasOptions = '<option value="">-- No hay tareas asignadas --</option>';
+
+// Función para inicializar las opciones de tareas dinámicamente
+async function inicializarTareasAsignadas(ordenId) {
+    try {
+        const response = await fetch(`/api/tareas_asignadas/${ordenId}`);
+        if (!response.ok) throw new Error(`Error al cargar tareas asignadas (status: ${response.status})`);
+        const tareas = await response.json();
+        ordenTareasOptions = tareas.map(t => `<option value="${t.id}">${t.nombre_tarea}</option>`).join('');
+    } catch (error) {
+        console.error('Error al cargar tareas asignadas:', error);
+        ordenTareasOptions = '<option value="">Error al cargar tareas asignadas</option>';
+    }
+}
+
+// Llamar a la función para cargar las opciones de tareas asignadas
+const ordenId = "{{ orden.id }}"; // Obtén el ID de la orden desde el contexto del backend
+inicializarTareasAsignadas(ordenId);
+
+
+    // Función para cargar las horas estándar desde el servidor
+    async function cargarHorasEstandar(tareaId) {
+        try {
+            const response = await fetch(`/obtener_horas_estandar/${tareaId}`);
+            if (!response.ok) throw new Error(`Error al obtener las horas estándar (status: ${response.status})`);
+            const data = await response.json();
+            return data.horas_estandar || '';
+        } catch (error) {
+            console.error('Error al cargar horas estándar:', error);
+            return '';
+        }
+    }
+    
+    agregarManoObraBtn.addEventListener('click', function () {
+        const uniqueId = `manoObra${index}`; // Genera un ID único para cada entrada
+        const newManoObra = `
+            <div class="accordion-item mano-obra-entry mb-3" data-item-id="">
+                <h2 class="accordion-header" id="heading${uniqueId}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${uniqueId}" aria-expanded="false" aria-controls="collapse${uniqueId}">
+                        Entrada de Mano de Obra #${index + 1}
+                    </button>
+                </h2>
+                <div id="collapse${uniqueId}" 
+                    class="accordion-collapse collapse" 
+                    role="region" 
+                    aria-labelledby="heading${uniqueId}">
+                    <div class="accordion-body p-3 bg-light">
+                        <input type="hidden" name="mano_obra_id[]" value="">
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label for="fecha_mano_obra_${index}">Fecha</label>
+                                <input type="date" name="fecha_mano_obra[]" id="fecha_mano_obra_${index}" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="hora_inicio_${index}">Hora de Inicio</label>
+                                <input type="time" name="hora_inicio_mano_obra[]" id="hora_inicio_${index}" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="hora_final_${index}">Hora Final</label>
+                                <input type="time" name="hora_final_mano_obra[]" id="hora_final_${index}" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="usuario_id_${index}">Usuario</label>
+                                <select name="usuario_id[]" id="usuario_id_${index}" class="form-control">
+                                    <option value="">-- Seleccione un Usuario --</option>
+                                    ${usuariosOptions}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <h6>Seleccionar Tarea</h6>
+                            <div class="col-md-12">
+                                <label for="tarea_id_${index}">Tarea Asignada</label>
+                                <select name="tarea_id[]" id="tarea_id_${index}" class="form-control">
+                                    ${ordenTareasOptions}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <h6>Descansos</h6>
+                            <div class="col-md-3">
+                                <label for="desayuno_inicio_${index}">Desayuno Inicio</label>
+                                <input type="time" name="desayuno_inicio[]" id="desayuno_inicio_${index}" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="desayuno_fin_${index}">Desayuno Fin</label>
+                                <input type="time" name="desayuno_fin[]" id="desayuno_fin_${index}" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="almuerzo_inicio_${index}">Almuerzo Inicio</label>
+                                <input type="time" name="almuerzo_inicio[]" id="almuerzo_inicio_${index}" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="almuerzo_fin_${index}">Almuerzo Fin</label>
+                                <input type="time" name="almuerzo_fin[]" id="almuerzo_fin_${index}" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label for="cafe_inicio_${index}">Café Inicio</label>
+                                <input type="time" name="cafe_inicio[]" id="cafe_inicio_${index}" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="cafe_fin_${index}">Café Fin</label>
+                                <input type="time" name="cafe_fin[]" id="cafe_fin_${index}" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="cena_inicio_${index}">Cena Inicio</label>
+                                <input type="time" name="cena_inicio[]" id="cena_inicio_${index}" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="cena_fin_${index}">Cena Fin</label>
+                                <input type="time" name="cena_fin[]" id="cena_fin_${index}" class="form-control">
+                            </div>
+                            <div class="col-md-12">
+                                <label for="comentario_${index}">Comentario</label>
+                                <textarea name="comentario[]" id="comentario_${index}" class="form-control" placeholder="Ingrese un comentario si no se asignó una tarea"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-danger eliminar-mano-obra">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        manoObraContainer.insertAdjacentHTML('beforeend', newManoObra);
+        index++;
+    });
+
+    // Asociar evento de cambio a cada selector de tarea
+    function asociarCambioTarea(select) {
+        select.addEventListener('change', async function () {
+            const loopIndex = this.dataset.loopIndex;
+            const horasEstandarInput = document.getElementById(`horas_tarea_estandar_${loopIndex}`);
+            const tareaId = this.value;
+
+            if (tareaId) {
+                const horasEstandar = await cargarHorasEstandar(tareaId);
+                horasEstandarInput.value = horasEstandar;
+            } else {
+                horasEstandarInput.value = '';
+            }
+        });
+    }
+
+    // Inicializar las horas estándar al recargar la página
+    async function inicializarHorasEstandar() {
+        const tareaSelects = document.querySelectorAll('.tarea-select');
+        for (let select of tareaSelects) {
+            const tareaId = select.value;
+            const loopIndex = select.dataset.loopIndex;
+            const horasEstandarInput = document.getElementById(`horas_tarea_estandar_${loopIndex}`);
+
+            if (tareaId && horasEstandarInput) {
+                const horasEstandar = await cargarHorasEstandar(tareaId);
+                horasEstandarInput.value = horasEstandar;
+            }
+        }
+    }
+
+    inicializarHorasEstandar();
+
+    // Función para eliminar una entrada de mano de obra
+    manoObraContainer.addEventListener('click', function (event) {
+        const button = event.target.closest('.eliminar-mano-obra');
+        if (button) {
+            const entry = button.closest('.mano-obra-entry');
+            const manoObraId = entry.dataset.itemId;
+
+            if (manoObraId) {
+                const eliminados = manoObraEliminadosInput.value ? manoObraEliminadosInput.value.split(',') : [];
+                eliminados.push(manoObraId);
+                manoObraEliminadosInput.value = eliminados.join(',');
+            }
+
+            entry.remove();
+        }
+    });
+});
+    </script>
+                        
+<!-- Sección de Traslados Desplegable -->
+<h3>Traslado</h3>
+<div class="accordion" id="accordionTraslado">
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingTraslado">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTraslado" aria-expanded="false" aria-controls="collapseTraslado">
+                Ver Traslados
+            </button>
+        </h2>
+        <div id="collapseTraslado" class="accordion-collapse collapse" aria-labelledby="headingTraslado" data-bs-parent="#accordionTraslado">
+            <div class="accordion-body">
+                <div id="traslado-container">
+                    {% for traslado in traslados %}
+                    <div class="row traslado-row" data-item-id="{{ traslado.id }}">
+                        <div class="col-md-3">
+                            <label for="chofer_id_{{ loop.index }}">Chofer</label>
+                            <select name="chofer[]" id="chofer_id_{{ loop.index }}" class="form-control">
+                                <option value="">-- Seleccione un Usuario --</option>
+                                {% for usuario_id, nombre in traslado_form.chofer.choices %}
+                                <option value="{{ usuario_id }}" {% if usuario_id|string == traslado.chofer|string %}selected{% endif %}>
+                                    {{ nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="placas_{{ loop.index }}">Placas</label>
+                            <input type="text" name="placas[]" id="placas_{{ loop.index }}" value="{{ traslado.placas }}" class="form-control" placeholder="Placas del vehículo" title="Placas del vehículo">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="traslado_fecha_{{ loop.index }}">Fecha</label>
+                            <input type="date" name="traslado_fecha[]" id="traslado_fecha_{{ loop.index }}" value="{{ traslado.fecha }}" class="form-control" title="Fecha del traslado">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="traslado_hora_inicio_{{ loop.index }}">Hora de Inicio</label>
+                            <input type="time" name="traslado_hora_inicio[]" id="traslado_hora_inicio_{{ loop.index }}" value="{{ traslado.hora_inicio }}" class="form-control" title="Hora de inicio del traslado">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="traslado_hora_final_{{ loop.index }}">Hora Final</label>
+                            <input type="time" name="traslado_hora_final[]" id="traslado_hora_final_{{ loop.index }}" value="{{ traslado.hora_final }}" class="form-control" title="Hora final del traslado">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="traslado_km_inicio_{{ loop.index }}">Km Inicio</label>
+                            <input type="number" name="traslado_km_inicio[]" id="traslado_km_inicio_{{ loop.index }}" value="{{ traslado.km_inicio }}" class="form-control" placeholder="Km Inicio" title="Kilómetros de inicio">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="traslado_km_final_{{ loop.index }}">Km Final</label>
+                            <input type="number" name="traslado_km_final[]" id="traslado_km_final_{{ loop.index }}" value="{{ traslado.km_final }}" class="form-control" placeholder="Km Final" title="Kilómetros finales">
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <button type="button" class="btn btn-danger btn-sm remove-field" title="Eliminar traslado">
+                                <i class="fas fa-trash-alt"></i> Eliminar
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="button" id="agregar-traslado" class="btn btn-secondary mt-2">Agregar Traslado</button>
+                <input type="hidden" id="traslados_eliminados" name="traslados_eliminados" value="">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const trasladosContainer = document.getElementById('traslado-container');
+        const agregarTrasladoBtn = document.getElementById('agregar-traslado');
+        let trasladoIndex = parseInt('{{ traslados|length }}', 10) || 0;
+
+        // Opciones dinámicas de usuarios para chofer
+        const usuariosOptions = `
+            {% for usuario_id, nombre in traslado_form.chofer.choices %}
+            <option value="{{ usuario_id }}">{{ nombre }}</option>
+            {% endfor %}
+        `;
+
+        // Eliminar traslado
+        trasladosContainer.addEventListener('click', function (event) {
+            if (event.target.classList.contains('remove-field') || event.target.closest('.remove-field')) {
+                const trasladoRow = event.target.closest('.traslado-row');
+                trasladoRow.remove();
+            }
+        });
+
+        // Agregar traslado dinámicamente
+        agregarTrasladoBtn.addEventListener('click', function () {
+            trasladoIndex++;
+            const newTraslado = `
+                <div class="row traslado-row">
+                    <div class="col-md-3">
+                        <label for="chofer_id_${trasladoIndex}">Chofer</label>
+                        <select name="chofer[]" id="chofer_id_${trasladoIndex}" class="form-control">
+                            <option value="">-- Seleccione un Usuario --</option>
+                            ${usuariosOptions}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="placas_${trasladoIndex}">Placas</label>
+                        <input type="text" name="placas[]" id="placas_${trasladoIndex}" class="form-control" placeholder="Placas del vehículo">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="traslado_fecha_${trasladoIndex}">Fecha</label>
+                        <input type="date" name="traslado_fecha[]" id="traslado_fecha_${trasladoIndex}" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="traslado_hora_inicio_${trasladoIndex}">Hora de Inicio</label>
+                        <input type="time" name="traslado_hora_inicio[]" id="traslado_hora_inicio_${trasladoIndex}" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="traslado_hora_final_${trasladoIndex}">Hora Final</label>
+                        <input type="time" name="traslado_hora_final[]" id="traslado_hora_final_${trasladoIndex}" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="traslado_km_inicio_${trasladoIndex}">Km Inicio</label>
+                        <input type="number" name="traslado_km_inicio[]" id="traslado_km_inicio_${trasladoIndex}" class="form-control" placeholder="Km Inicio">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="traslado_km_final_${trasladoIndex}">Km Final</label>
+                        <input type="number" name="traslado_km_final[]" id="traslado_km_final_${trasladoIndex}" class="form-control" placeholder="Km Final">
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button type="button" class="btn btn-danger btn-sm remove-field">Eliminar</button>
+                    </div>
+                </div>
+            `;
+            trasladosContainer.insertAdjacentHTML('beforeend', newTraslado);
+        });
+    });
+</script>
+
+<!-- Checklist de Inspección -->
+<div id="checklist-container" style="display: none;">
+    <h3>Checklist Final</h3>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>Tipo de inspección</th>
+                <th>Ítems de inspección</th>
+                <th>Resultados de la inspección</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for i in range(inspecciones|length) %}
+            <tr>
+                <td>{{ i + 1 }}</td>
+                <td>{{ inspecciones[i].tipo }}</td>
+                <td>{{ inspecciones[i].descripcion }}</td>
+                <td>
+                    <input type="radio" name="inspeccion_{{ i + 1 }}" value="Si" 
+                        {% if form["inspeccion_" ~ (i + 1)].data == "Si" %} checked {% endif %}> Sí
+
+                    <input type="radio" name="inspeccion_{{ i + 1 }}" value="No" 
+                        {% if form["inspeccion_" ~ (i + 1)].data == "No" %} checked {% endif %}> No
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const tipoServicioSelect = document.getElementById('tipo_servicio');
+    const checklistContainer = document.getElementById('checklist-container');
+
+    function toggleChecklist() {
+        console.log("Tipo de servicio seleccionado:", tipoServicioSelect.value);
+        if (tipoServicioSelect.value === 'Alisto') {
+            checklistContainer.style.display = 'block';
+        } else {
+            checklistContainer.style.display = 'none';
+        }
+    }
+
+    // Ejecutar cuando la página se carga para verificar si ya está seleccionado "Alisto"
+    setTimeout(toggleChecklist, 200);
+
+    // Evento cuando cambia el tipo de servicio
+    tipoServicioSelect.addEventListener('change', toggleChecklist);
+});
+</script>
+
+    
+    <div class="form-group">
+        <label for="fecha_fin">Fecha de Finalización</label>
+        {{ form.fecha_fin(class="form-control") }}
+    </div>
+    
+    {% if current_user.is_admin %}
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label for="buscar_tarea" class="form-label">Buscar por ID:</label>
+            <input type="text" id="buscar_tarea" class="form-control mb-2" placeholder="Ingrese el ID de la tarea">
+    
+            <label for="tareas" class="form-label">Tareas Seleccionadas:</label>
+            <select name="tareas[]" id="tareas" class="form-select" multiple style="width: 100%;">
+                {% for tarea in catalogo_tiempos %}
+                    <option 
+                        value="{{ tarea.id }}" data-horas="{{ tarea.tiempo_estandar }}"
+                        {% if tarea.id in form.tareas.data %}selected{% endif %}>
+                        {{ tarea.nombre_tarea }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            $('#tareas').select2({
+                placeholder: "Escriba para buscar tareas...",
+                allowClear: true
+            });
+        
+            // Oculta todas las opciones por defecto
+            $('#tareas').val(null).trigger('change');
+        });
+        </script>
+        
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        let inputBusqueda = document.getElementById("buscar_tarea");
+        let selectTareas = document.getElementById("tareas");
+
+        inputBusqueda.addEventListener("keyup", function () {
+            let filtro = inputBusqueda.value.toLowerCase();
+            let opciones = selectTareas.options;
+
+            for (let i = 0; i < opciones.length; i++) {
+                let textoTarea = opciones[i].textContent.toLowerCase(); // Filtra por nombre de la tarea
+                if (textoTarea.includes(filtro)) {
+                    opciones[i].style.display = "block";
+                } else {
+                    opciones[i].style.display = "none";
+                }
+            }
+        });
+    });
+    </script>
+    {% endif %}
+                
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <h5>Tareas Seleccionadas</h5>
+            <div id="panel-tareas" class="border p-3" style="background-color: #f9f9f9; max-height: 200px; overflow-y: auto;">
+                <!-- Aquí se mostrarán las tareas seleccionadas -->
+                <ul id="lista-tareas" style="list-style-type: none; padding: 0;">
+                    {% if orden and orden.tareas %}
+                        {% for tarea in orden.tareas %}
+                        <li>
+                            <strong>{{ tarea.nombre_tarea }}</strong> - Tiempo Estándar: {{ tarea.tiempo_estandar }} horas
+                        </li>
+                        {% endfor %}
+                    {% else %}
+                    <li>No hay tareas seleccionadas aún.</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const tareasSelect = document.getElementById("tareas");
+            const listaTareas = document.getElementById("lista-tareas");
+        
+            if (tareasSelect && listaTareas) {
+                const actualizarPanelTareas = () => {
+                    listaTareas.innerHTML = ""; // Limpiar lista actual
+        
+                    Array.from(tareasSelect.options).forEach(option => {
+                        if (option.selected) { // Verificar si la opción está seleccionada
+                            const nombreTarea = option.textContent.trim();
+                            const tiempoEstandar = option.dataset.horas || "N/A";
+        
+                            // Crear elemento de lista para cada tarea seleccionada
+                            const listItem = document.createElement("li");
+                            listItem.innerHTML = `<strong>${nombreTarea}</strong> - Tiempo Estándar: ${tiempoEstandar} horas`;
+                            listaTareas.appendChild(listItem);
+                        }
+                    });
+        
+                    // Mostrar mensaje si no hay tareas seleccionadas
+                    if (listaTareas.children.length === 0) {
+                        listaTareas.innerHTML = "<li>No hay tareas seleccionadas aún.</li>";
+                    }
+                };
+        
+                // Actualizar el panel al cargar la página
+                actualizarPanelTareas();
+        
+                // Actualizar el panel al cambiar la selección
+                tareasSelect.addEventListener("change", () => {
+                    actualizarPanelTareas();
+        
+                    // Depuración: Verificar las tareas seleccionadas
+                    console.log("Tareas seleccionadas:");
+                    Array.from(tareasSelect.selectedOptions).forEach(option => {
+                        console.log(`- ${option.textContent.trim()} (ID: ${option.value})`);
+                    });
+                });
+            } else {
+                console.error("El elemento con ID 'tareas' o 'lista-tareas' no se encontró en el DOM.");
+            }
+        });
+        </script>
+            
+    <style>
+        #panel-tareas {
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            padding: 10px;
+            background-color: #f9f9f9;
+            max-height: 200px; /* Limitar la altura */
+            overflow-y: auto; /* Habilitar scroll vertical */
+        }
+    
+        #panel-tareas ul {
+            margin: 0;
+            padding: 0;
+            list-style-type: none; /* Ocultar viñetas */
+        }
+    
+        #panel-tareas li {
+            padding: 5px 0;
+            font-size: 14px;
+            border-bottom: 1px solid #ddd;
+        }
+    
+        #panel-tareas li:last-child {
+            border-bottom: none;
+        }
+    </style>
+
+    
+    
+                
+
+
+    {% if current_user.rol == 'admin' %}
+    <div class="mb-3">
+        <label for="costo" class="form-label">Costo</label>
+        {{ form.costo(class="form-control") }}
+    </div>
+    {% endif %}
+
+
+    <!-- Observaciones -->
+    <h4>Trabajos Realizados</h4>
+
+    <!-- Observaciones adicionales o pendientes -->
+    <div class="mb-3">
+        {{ form.observaciones.label(class="form-label") }} <!-- Etiqueta original -->
+        {{ form.observaciones(class="form-control auto-resize-textarea", rows="3", placeholder="Ingrese cualquier observación adicional", title="Observaciones adicionales o pendientes") }}
+    </div>
+
+    <!-- Estado de la orden -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                {{ form.estado.label }}
+                {{ form.estado(class="form-control") }}
+            </div>
+        </div>
+    </div>
+
+
+    <style>
+        /* Ajustar el tamaño de la fuente y el espaciado */
+        .auto-resize-textarea {
+            font-size: 1.1em; /* Aumenta el tamaño de la fuente */
+            line-height: 1.5em; /* Espaciado para mejorar legibilidad */
+            padding: 10px; /* Espaciado interior */
+            resize: none; /* Evita el ajuste manual de tamaño */
+            height: 150px; /* Altura personalizada para todos los textarea */
+            font-size: 1rem; /* Aumenta el tamaño de la fuente si lo deseas */
+            resize: none; /* Evita el redimensionamiento manual */
+    }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const textarea = document.querySelector('.auto-resize-textarea');
+            
+            if (textarea) {
+                textarea.addEventListener('input', function() {
+                    this.style.height = 'auto'; // Restablecer altura para recálculo
+                    this.style.height = (this.scrollHeight) + 'px'; // Ajuste responsivo
+                });
+                
+                // Ajuste inicial si hay contenido precargado
+                textarea.style.height = 'auto';
+                textarea.style.height = (textarea.scrollHeight) + 'px';
+            }
+        });
+    </script>
+
+    <!-- Sección para Fotos Existentes -->
+    <h4>Fotografías Existentes</h4>
+    <div id="fotos-galeria" class="row">
+        {% for foto in orden.fotos %}
+        <div class="col-md-4 mb-3 text-center foto-item" data-foto-id="{{ foto.id }}">
+            <div class="thumbnail">
+                <img src="{{ url_for('static', filename=foto.ruta_foto) }}" alt="Foto de la Orden" class="img-thumbnail">
+                <p class="mt-2"><strong>{{ foto.tag_foto }}</strong></p>
+                <button type="button" class="btn btn-danger btn-sm eliminar-foto-btn" title="Eliminar Foto">
+                    <i class="fas fa-trash-alt"></i> Eliminar
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Botón para Agregar Nuevas Fotos -->
+    <h4>Agregar Nuevas Fotos</h4>
+    <div id="fotos-container">
+        <!-- Contenedor dinámico para nuevas fotos -->
+    </div>
+
+    <style>
+        /* Estilo para miniaturas de fotos */
+        .thumbnail {
+            max-width: 150px;
+            margin: 0 auto;
+        }
+
+        .thumbnail img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 5px;
+        }
+
+        .thumbnail p {
+            font-size: 0.9rem;
+            text-align: center;
+            color: #555;
+        }
+    </style>
+
+    
+    <div id="fotos-container">
+        <!-- Contenedor dinámico para las fotos -->
+    </div>
+
+    <button id="add-foto-btn" class="btn btn-primary btn-sm mb-3" type="button">
+        <i class="fas fa-plus-circle"></i> Agregar Foto
+    </button>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const fotosGaleria = document.getElementById('fotos-galeria');
+        const fotosContainer = document.getElementById('fotos-container');
+        const addFotoBtn = document.getElementById('add-foto-btn');
+
+        // Función para agregar un nuevo campo para foto
+        function agregarFoto() {
+            const nuevaFotoHTML = `
+                <div class="row foto-row mb-3">
+                    <div class="col-md-4">
+                        <label>Subir Foto</label>
+                        <input type="file" name="fotos[]" accept="image/*;capture=camera class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label>Etiqueta</label>
+                        <input type="text" name="foto_tag[]" class="form-contr  ol" placeholder="Etiqueta de la foto">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-danger btn-sm remove-foto" title="Eliminar Foto">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            fotosContainer.insertAdjacentHTML('beforeend', nuevaFotoHTML);
+        }
+
+        // Evento para agregar nueva foto
+        addFotoBtn.addEventListener('click', agregarFoto);
+
+        // Delegación de eventos para eliminar fotos nuevas
+        fotosContainer.addEventListener('click', function (event) {
+            if (event.target.closest('.remove-foto')) {
+                const fotoRow = event.target.closest('.foto-row');
+                if (fotoRow) {
+                    fotoRow.remove();
+                }
+            }
+        });
+
+        // Delegación de eventos para eliminar fotos existentes
+        fotosGaleria.addEventListener('click', function (event) {
+            if (event.target.closest('.eliminar-foto-btn')) {
+                const fotoItem = event.target.closest('.foto-item');
+                const fotoId = fotoItem.dataset.fotoId;
+
+                // Confirmación antes de eliminar
+                if (confirm('¿Estás seguro de que deseas eliminar esta foto?')) {
+                    fetch(`/eliminar_foto/${fotoId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                        }
+                    })
+                        .then(response => {
+                            if (response.ok) {
+                                fotoItem.remove();
+                                alert('Foto eliminada correctamente.');
+                            } else {
+                                throw new Error('No se pudo eliminar la foto.');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error al eliminar foto:', error);
+                            alert('Ocurrió un error al intentar eliminar la foto.');
+                        });
+                }
+            }
+        });
+    });
+    </script>
+    <h4>Firmas</h4>
+    <div class="row">
+        <div class="col-md-6">
+            <h5>Firma del Cliente</h5>
+            {% if orden.firma_cliente %}
+                <img src="{{ url_for('static', filename='images/firmas/' + orden.firma_cliente) }}" alt="Firma del Cliente" class="img-fluid img-firma">
+            {% else %}
+                <p>No disponible</p>
+            {% endif %}
+        </div>
+        <div class="col-md-6">
+            <h5>Firma del Responsable</h5>
+            {% if orden.firma_responsable %}
+                <img src="{{ url_for('static', filename='images/firmas/' + orden.firma_responsable) }}" alt="Firma del Responsable" class="img-fluid img-firma">
+            {% else %}
+                <p>No disponible</p>
+            {% endif %}
+        </div>
+    </div>
+
+
+    <div class="d-flex justify-content-end gap-2 mt-4">
+   
+
+    <div class="modal fade" id="signatureModalCliente" tabindex="-1" aria-labelledby="signatureModalClienteLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="signatureModalClienteLabel">Firma Digital - Cliente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <canvas id="signatureCanvasCliente" width="400" height="200" class="canvas-signature"></canvas>
+                    <input type="hidden" name="firma_cliente_data" id="firmaClienteData"> <!-- Campo oculto para guardar la firma del cliente -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="clearSignatureClienteBtn" class="btn btn-warning">Limpiar</button>
+                    <button type="button" id="saveSignatureClienteBtn" class="btn btn-primary" data-bs-dismiss="modal">Guardar Firma</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+<div class="modal fade" id="signatureModalResponsable" tabindex="-1" aria-labelledby="signatureModalResponsableLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="signatureModalResponsableLabel">Firma Digital - Responsable</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <canvas id="signatureCanvasResponsable" width="400" height="200" class="canvas-signature"></canvas>
+                    <input type="hidden" name="firma_responsable_data" id="firmaResponsableData"> <!-- Campo oculto para guardar la firma del responsable -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="clearSignatureResponsableBtn" class="btn btn-warning">Limpiar</button>
+                    <button type="button" id="saveSignatureResponsableBtn" class="btn btn-primary" data-bs-dismiss="modal">Guardar Firma</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="button-group">        
+        <div class="button-group">
+            <button type="button" class="btn btn-pastel-signature" data-bs-toggle="modal" data-bs-target="#signatureModalResponsable">
+                <i class="fas fa-signature"></i> Firma Responsable
+            </button>
+        
+            <button type="button" class="btn btn-pastel-signature" data-bs-toggle="modal" data-bs-target="#signatureModalCliente">
+                <i class="fas fa-signature"></i> Firma Cliente
+            </button>
+                
+            <button type="submit" class="btn btn-pastel-save">
+                <i class="fas fa-save"></i> Guardar Orden
+            </button>
+        </div>
+    </div>
+
+
+    <script src="{{ url_for('static', filename='js/ordenes_trabajo.js') }}"></script>
+    {% endblock %}
